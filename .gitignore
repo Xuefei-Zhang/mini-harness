@@ -1,0 +1,28 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.uv/
+
+# C++
+build/
+*.o
+*.so
+*.a
+*.dSYM/
+compile_commands.json
+
+# Editors
+.vscode/
+.idea/
+*.swp
+.DS_Store
+
+# Project
+.env
+*.log
+trajectories/
+runs/
+.cache/
