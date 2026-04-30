@@ -22,6 +22,7 @@ compile_commands.json
 
 # Project
 .env
+!.env.example
 *.log
 trajectories/
 runs/
