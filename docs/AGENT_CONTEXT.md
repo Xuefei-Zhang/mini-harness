@@ -42,11 +42,15 @@ Every module serves one goal: **let the harness drive a model through a long-hor
 ## 2. Where are we? (Day 1 of 30, as of 2026-05-21)
 
 ### Completed
-- [x] Day 1: `experiments/day01_react_from_scratch.py` — 260 LOC, 3 tools, 3 providers, ReAct from scratch
 - [x] PLAN.md v3.0 — full 30-day plan with JD alignment
 - [x] 30 daily briefs updated to v3.0
 - [x] `docs/learning_map.md` — languages, tools, papers, source code, deny list
 - [x] `docs/interview_prep.md` — 76 interview questions across 13 categories
+- [x] `docs/notes/paper_summaries.md` — Chinese summaries of referenced papers
+- [x] pi-mono learning map — maps each Day → reference code → interview Qs
+
+### Not yet started
+- Day 1: `experiments/day01_react_from_scratch.py` — user will build from scratch
 
 ### Next tasks (in order of priority, but any order OK)
 1. **Day 1 review**: Re-reading Day 1 code, running 5-task experiment, writing `docs/notes/day01_review.md`

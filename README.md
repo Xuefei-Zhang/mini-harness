@@ -39,13 +39,14 @@ cd mini-harness
 $EDITOR .env                 # add API keys for cloud providers (optional if using vLLM)
 
 source .venv/bin/activate
+```
 
-# Local vLLM (default, zero cost) — requires vllm_fp8 start
+Follow the daily briefs in `docs/daily/` to build each experiment from scratch.
+Day 1 produces `experiments/day01_react_from_scratch.py` — a ReAct agent with 3 tools and multi-provider support.
+
+```bash
+# After Day 1 is complete:
 python experiments/day01_react_from_scratch.py "What is 17 * 23 + 5?"
-
-# Cloud providers (for API-specific feature work)
-python experiments/day01_react_from_scratch.py --provider deepseek \
-    "Read README.md and tell me how many components there are."
 ```
 
 ## Layout

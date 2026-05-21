@@ -133,10 +133,12 @@
 
 **目标**：理解 agent 全谱系机制，建立对"模型行为"的直觉
 
-### Day 1 - ReAct 回顾
-> 已完成：`experiments/day01_react_from_scratch.py`（260 行，3 tools, 3 providers）
-- [ ] 重读代码，补注释（WHY 不是 WHAT）
-- [ ] 跑 5 个不同任务，记录成功率/步数/token
+### Day 1 - Agent Loop 与 ReAct
+> 从零手写，参考 pi-mono `packages/agent/src/agent-loop.ts`
+- [ ] 读 pi-mono agent-loop 源码，理解 turn loop + tool call 检测
+- [ ] 回答面试 Q1/Q3/Q6（`docs/interview_prep.md`）
+- [ ] 手写 `experiments/day01_react_from_scratch.py`：3 tools, vllm provider, ~250 行
+- [ ] 跑 5 个任务，记录成功率/步数/token
 - [ ] 写 `docs/notes/day01_review.md`：ReAct 在哪类任务上好/差？为什么？
 
 ### Day 2 - 现代 Python 速通

@@ -1,10 +1,10 @@
 # Day 01 — Agent Loop 与 ReAct
 
-> 参考实现：`experiments/day01_react_from_scratch.py`（260 行，3 tools, 4 providers）
+> 产出：`experiments/day01_react_from_scratch.py`（从零手写，参考 pi-mono）
 > 活体标本：pi-mono `packages/agent/src/agent-loop.ts`
 
 ## Why this day matters
-你已经写了 ReAct agent，但"写了"不等于"理解了"。面试时会问你：ReAct 为什么有效？Thought-Action-Observation 循环的本质是什么？你的实现和成熟产品比差距在哪？今天通过 pi-mono 源码 + 手写实验来回答。
+面试时会问你：ReAct 为什么有效？Thought-Action-Observation 循环的本质是什么？和成熟产品比差距在哪？今天通过 pi-mono 源码 + 从零手写来回答。
 
 ## 学习流程
 
@@ -28,13 +28,15 @@
 - ReAct paper：先看 `docs/notes/paper_summaries.md` 中的 "ReAct" 节（5 分钟）。如有兴趣再读原文 [arxiv 2210.03629](https://arxiv.org/abs/2210.03629)
 - Anthropic: Building Effective Agents（必读）：[链接](https://www.anthropic.com/research/building-effective-agents) — 只看 "Agents" 部分
 
-### 4. 重读 Day 1 代码
-`experiments/day01_react_from_scratch.py`：
-- 梳理 Thought → Action → Observation 循环的数据流
-- 对比你的实现和 pi-mono 的实现：哪些设计相同、哪些不同？
+### 4. 手写 ReAct 实现
+创建 `experiments/day01_react_from_scratch.py`：
+- 3 个工具：`calc`(safe AST eval), `read_file`, `finish`
+- 支持至少 vllm provider（`--provider vllm`）
+- regex-based step parser 解析 Thought-Action-Action Input 格式
+- 参考 pi-mono 的 loop 结构，但**不要复制代码**——用自己的理解写
 
 ### 5. 实验：跑 5 个不同任务
-用 `experiments/day01_react_from_scratch.py` 跑以下任务（`--provider vllm`），记录每次的结果：
+用写好的脚本跑以下任务（`--provider vllm`），记录每次的结果：
 - 简单计算："What is 17 * 23 + 5?"
 - 文件读取："Read pyproject.toml and tell me the dependencies"
 - 多步推理："What is the factorial of 7?"
@@ -54,15 +56,16 @@
 ## Acceptance criteria
 - [ ] 读通 pi-mono `agent-loop.ts` 的主循环
 - [ ] 能回答 Q1 / Q3 / Q6（用自己的语言）
+- [ ] `experiments/day01_react_from_scratch.py` 手写完成（~250-300 行）
 - [ ] 5 个任务的实验记录在 `docs/notes/day01_review.md`
 - [ ] ReAct 优缺点分析（5-8 句）
 
 ## Commit message
-`day1: agent loop study (pi-mono + handwork), ReAct review, 5-task experiment`
+`day1: agent loop study (pi-mono), ReAct from scratch, 5-task experiment`
 
 ## If you finish early
 - 对比同一个任务在 vllm vs 云端 provider 下的表现差异
 - 提前看 `packages/coding-agent/src/core/tools/bash.ts`（为 Day 2-3 热身）
 
 ## If you fall behind
-- 跳过补注释，只做 pi-mono 阅读 + 实验记录
+- 跳过背景资料，只做 pi-mono 阅读 + 手写实现 + 实验记录
