@@ -4,7 +4,7 @@
 Reflexion 是工业界实际在生产中用的推理增强——"失败后反思 → 下次避免"。ToT 只是 lightweight demo 体现广度。最终产出三种模式的对比分析。
 
 ## Reading (1)
-- [Reflexion](https://arxiv.org/abs/2303.11366) — abstract + method
+- Reflexion：先看 `docs/notes/paper_summaries.md` 中的 "Reflexion" 节（5 分钟）。如想深入了解实现细节，再看原文 [arxiv 2303.11366](https://arxiv.org/abs/2303.11366) 的 method section。
 
 ## Build tasks
 

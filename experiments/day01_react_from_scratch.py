@@ -155,7 +155,7 @@ def call_openai(system: str, messages: list[dict], model: str | None = None) -> 
 def call_vllm(system: str, messages: list[dict], model: str | None = None) -> LLMResponse:
     return call_openai_compatible(
         system, messages,
-        base_url=os.getenv("VLLM_BASE_URL", "http://localhost:8000/v1"),
+        base_url=os.getenv("VLLM_BASE_URL", "http://localhost:9070/v1"),
         api_key=os.getenv("VLLM_API_KEY", "EMPTY"),
         model=model or os.getenv("DEFAULT_MODEL_VLLM", "Qwen3-27B-FP8"),
     )

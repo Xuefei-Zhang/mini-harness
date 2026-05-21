@@ -6,6 +6,10 @@
 ## Why this day matters
 你已经写了 ReAct agent，但"写了"不等于"理解了"。面试时会问你：ReAct 为什么有效？Thought-Action-Observation 循环的本质是什么？和其他推理模式比优劣在哪？今天用实验数据回答这些问题。
 
+## Reading
+- ReAct paper：先看 `docs/notes/paper_summaries.md` 中的 "ReAct" 节（5 分钟）。如有兴趣再读原文 [arxiv 2210.03629](https://arxiv.org/abs/2210.03629)
+- Anthropic: Building Effective Agents（必读）：[链接](https://www.anthropic.com/research/building-effective-agents) — 只看 "Agents" 部分
+
 ## Build tasks
 
 ### 1. 重读 Day 1 代码

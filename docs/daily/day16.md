@@ -5,7 +5,8 @@
 DeepSeek 关心的不是"agent 以前聊过什么"，而是 **"agent 当前在做什么、下一步该干嘛"**。
 
 ## Reading (1)
-- Anthropic paper 中 memory 章节
+- `docs/notes/paper_summaries.md` — "Anthropic: Building Effective Agents" 节中的 "reflection" 和 "让模型自己维护状态" 部分
+- 原文 [Building Effective Agents](https://www.anthropic.com/research/building-effective-agents) — 有兴趣再看全文
 
 ## Build tasks
 

@@ -4,7 +4,7 @@
 CoT（Chain of Thought）是工业界用得最多的推理增强。你不仅要实现它，还要用数据回答："CoT 在哪些场景下比 baseline 好？好多少？token 代价是多少？"——这就是 research infra language 的起点。
 
 ## Reading (1)
-- [Chain of Thought](https://arxiv.org/abs/2201.11903) — abstract + intro + 结论
+- CoT：先看 `docs/notes/paper_summaries.md` 中的 "Chain of Thought" 节（3 分钟）。原文 [arxiv 2201.11903](https://arxiv.org/abs/2201.11903) 只看 abstract 即可。
 
 ## Build tasks
 

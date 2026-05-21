@@ -150,13 +150,19 @@ Day 8-11 的 C++ sandbox **需要 Linux**（cgroups/seccomp 是 Linux-only）。
 ## 四、Agent 核心机制（贯穿 W1-W3）
 
 ### Paper 精读（按优先级）
+
+**阅读策略**：先读 `docs/notes/paper_summaries.md` 中的中文总结（每篇 3-5 分钟），再决定是否需要看原文。
+只有 Anthropic "Building Effective Agents" 建议全文阅读，其余看总结 + 关键章节即可。
+
 | Paper | 读什么 | 学多久 | 链接 |
 |---|---|---|---|
-| **Anthropic: Building effective agents** | workflow vs agent, prompt chaining, routing, orchestrator-workers, evaluator-optimizer, reflection | 2h | [原文](https://www.anthropic.com/research/building-effective-agents) |
-| **ReAct** | Thought-Action-Observation 循环为什么有效 | 1h | [arxiv 2210.03629](https://arxiv.org/abs/2210.03629) |
-| **Reflexion** | 失败后生成反思 → 下次避免 | 1h | [arxiv 2303.11366](https://arxiv.org/abs/2303.11366) |
-| **Chain of Thought** | abstract + intro | 0.5h | [arxiv 2201.11903](https://arxiv.org/abs/2201.11903) |
-| **SWE-agent** | ACI 设计，只看 method section | 2h | [arxiv 2405.15793](https://arxiv.org/abs/2405.15793) |
+| **Anthropic: Building effective agents** (必读全文) | workflow vs agent, prompt chaining, routing, orchestrator-workers, evaluator-optimizer, reflection | 1h | [原文](https://www.anthropic.com/research/building-effective-agents) + [总结](docs/notes/paper_summaries.md) |
+| **ReAct** | Thought-Action-Observation 循环为什么有效 | 看总结 5min | [总结](docs/notes/paper_summaries.md) \| [arxiv 2210.03629](https://arxiv.org/abs/2210.03629) |
+| **Reflexion** | 失败后生成反思 → 下次避免 | 看总结 5min | [总结](docs/notes/paper_summaries.md) \| [arxiv 2303.11366](https://arxiv.org/abs/2303.11366) |
+| **Chain of Thought** | abstract + intro | 看总结 3min | [总结](docs/notes/paper_summaries.md) \| [arxiv 2201.11903](https://arxiv.org/abs/2201.11903) |
+| **SWE-agent** | ACI 设计，只看 method section | 看总结 5min | [总结](docs/notes/paper_summaries.md) \| [arxiv 2405.15793](https://arxiv.org/abs/2405.15793) |
+| **Tree of Thoughts** | 树状搜索 vs 线性推理 | 看总结 3min | [总结](docs/notes/paper_summaries.md) \| [arxiv 2305.10601](https://arxiv.org/abs/2305.10601) |
+| **SWE-bench** | 评估流水线、数据格式 | 看总结 5min | [总结](docs/notes/paper_summaries.md) \| [GitHub](https://github.com/SWE-bench/SWE-bench) |
 
 ### 源码精读（按优先级）
 | 项目 | 读哪些文件 | 链接 |

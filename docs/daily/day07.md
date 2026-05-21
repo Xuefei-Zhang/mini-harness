@@ -12,10 +12,11 @@
 - **Git 集成**：怎么用 git 做 safety？
 
 ### 2. 读 SWE-agent 源码
+先看 `docs/notes/paper_summaries.md` 中的 "SWE-agent" 节了解背景。
 重点：
 - **ACI（Agent-Computer Interface）**：action space 怎么设计？
 - **Observation 裁剪**：命令输出超长时怎么处理？
-- 读 [SWE-agent paper](https://arxiv.org/abs/2405.15793) method section
+- 原文 [SWE-agent paper](https://arxiv.org/abs/2405.15793) — 方法细节有兴趣再看
 
 ### 3. 架构图
 - `docs/design/aider-arch.png`

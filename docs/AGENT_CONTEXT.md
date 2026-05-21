@@ -54,6 +54,11 @@ Every module serves one goal: **let the harness drive a model through a long-hor
 3. **Day 3**: Prompt Engineering A/B/C test (3 system prompts × 5+ tasks)
 4. **§零 of learning_map**: Linux containerization basics (namespaces, cgroups, seccomp) — finish before Day 8
 
+### Environment
+- **Local LLM**: vLLM Qwen3.6-27B-FP8 on `localhost:9070` (systemd service `vllm-fp8`). Manage with `vllm_fp8 {start|stop|status|report}`
+- **Paper summaries**: `docs/notes/paper_summaries.md` — Chinese summaries of all referenced papers. Read this before diving into original papers.
+- **API keys**: `.env` (not tracked). Copy from `.env.example` for cloud provider experiments.
+
 ---
 
 ## 3. How to work here

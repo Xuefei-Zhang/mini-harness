@@ -15,7 +15,7 @@ Most agent frameworks (LangChain, LangGraph, AutoGen) hide the interesting parts
 |---|---|---|
 | **Sandbox** | C++ on cgroups v2 + seccomp + Linux namespaces | To prove I can build a real isolation primitive, not wrap Docker |
 | **Tool server** | MCP protocol, no SDK | To understand the wire format, not just the client API |
-| **Agent loop** | async Python, 4 providers (Anthropic / OpenAI / DeepSeek / Qwen) | To own context-window, retry, and stuck-detection logic |
+| **Agent loop** | async Python, multi-provider (vLLM local + Anthropic / OpenAI / DeepSeek) | To own context-window, retry, and stuck-detection logic |
 | **Eval pipeline** | SWE-bench Lite end-to-end | To produce a number, not a demo |
 
 ## Roadmap
@@ -36,10 +36,14 @@ Daily logs: [`docs/notes/`](docs/notes/)
 git clone <this-repo>
 cd mini-harness
 ./scripts/setup.sh           # creates .venv, installs deps, copies .env.example -> .env
-$EDITOR .env                 # add at least ANTHROPIC_API_KEY or DEEPSEEK_API_KEY
+$EDITOR .env                 # add API keys for cloud providers (optional if using vLLM)
 
 source .venv/bin/activate
+
+# Local vLLM (default, zero cost) — requires vllm_fp8 start
 python experiments/day01_react_from_scratch.py "What is 17 * 23 + 5?"
+
+# Cloud providers (for API-specific feature work)
 python experiments/day01_react_from_scratch.py --provider deepseek \
     "Read README.md and tell me how many components there are."
 ```
