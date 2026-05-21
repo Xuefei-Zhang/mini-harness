@@ -1,48 +1,44 @@
-# Day 05 — Read aider source code (repo map + edit format)
+# Day 05 — Reasoning：Reflexion（重点）+ ToT（lightweight）+ 对比总结
 
 ## Why this day matters
-aider pioneered two things every modern coding agent borrows: the **repo map** (a token-budgeted view of a codebase) and **search-replace edit blocks** (the format Claude/GPT actually apply reliably). You will reimplement both, in simplified form, in W3. Today is reconnaissance.
+Reflexion 是工业界实际在生产中用的推理增强——"失败后反思 → 下次避免"。ToT 只是 lightweight demo 体现广度。最终产出三种模式的对比分析。
 
 ## Reading (1)
-- aider source — clone:
-  ```bash
-  git clone https://github.com/Aider-AI/aider ~/code/aider
-  cd ~/code/aider
-  ```
-  Read **only**:
-  - `aider/repomap.py` — the whole file
-  - `aider/coders/editblock_coder.py` and `aider/coders/editblock_prompts.py`
-  - `aider/coders/udiff_coder.py` (skim — for contrast)
-
-  Bonus context: their docs page on [edit formats](https://aider.chat/docs/more/edit-formats.html), but only if you finish the source first.
+- [Reflexion](https://arxiv.org/abs/2303.11366) — abstract + method
 
 ## Build tasks
-Produce `docs/notes/aider/` with two files:
 
-1. **`repo-map.md`** — 300–500 words answering:
-   - What is a "repo map" and why does it exist?
-   - How does aider rank symbols (PageRank on the call graph)? At what granularity (file? function? class?)?
-   - How does it stay within a token budget?
-   - What's the cost-per-call (does it run on every turn, or cached)?
-   - When would this approach **fail**? (e.g. dynamically-typed Python with heavy reflection)
+延续 `experiments/day04_reasoning_modes.py`：
 
-2. **`edit-formats.md`** — 300–500 words answering:
-   - Compare three formats: whole-file replace, search-replace block, unified diff. Which model is best at which?
-   - What recovery strategy does aider use when an edit block doesn't match? (fuzzy match? retry? bail?)
-   - What's the prompt structure that gets the model to emit clean blocks?
-   - Quote the exact instruction text from `editblock_prompts.py`.
+### 1. Reflexion（反思记忆）— 重点
+- 每次失败后让模型生成反思："为什么失败？下次怎么避免？"
+- 反思存入 memory（list 即可）
+- 下次运行时将历史反思注入 prompt
+- 观察同一任务第 1/2/3 次尝试是否改善
+- **核心问题**：reflection 需要几次迭代才能从失败到成功？token 代价是否值得？
 
-Each file: cite ≥ 3 source locations.
+### 2. ToT（Tree of Thoughts）— lightweight demo
+- 对 1-2 个任务做 ToT：每个决策点生成 3 分支 → 投票选最佳
+- 不用追求完美实现，证明"你理解这个模式"即可
+
+### 3. 三种模式对比
+选 1-2 个任务，跑 baseline / CoT / Reflexion / ToT：
+
+| 模式 | 成功 | 步数 | tokens | latency | 质量 |
+
+### 4. 对比总结 → `docs/notes/day05_reasoning_comparison.md`
+- 每种模式核心机制（2-3 句）
+- 对比表
+- 你的结论：工业界场景下推荐用哪种？代价是什么？
+- **research infra language**："我在分析 reasoning strategies 对 task completion rate 的影响"
 
 ## Acceptance criteria
-- [ ] Both notes committed
-- [ ] You can answer in 60 seconds: "Why search-replace blocks instead of unified diffs?" with a concrete reason from the code
+- [ ] Reflexion 实现（反思 → memory → 注入 → 观察改善）
+- [ ] ToT lightweight demo（1-2 任务）
+- [ ] 对比表 + 分析
 
 ## Commit message
-`docs: aider source notes — repo map and edit formats`
-
-## If you finish early
-Start `docs/notes/aider/git-integration.md` — how aider does auto-commits, dirty-tree handling, and undo. Useful for W3 sandbox-git interaction.
+`day5: Reflexion (重点) + ToT demo, 3-mode reasoning comparison`
 
 ## If you fall behind
-Skip the unified-diff coder. Repo map + search-replace blocks are the must-knows.
+- 只做 Reflexion，ToT 一行笔记带过

@@ -1,101 +1,55 @@
-# Day 17 — Trajectory recording + viewer
+# Day 17 — Context Engineering + 博客 3
 
 ## Why this day matters
-Trajectories are the **product** of a harness. Eval scores are aggregates over them; debugging is reading them; future RL/SFT data is sampling from them. A good trajectory format pays back compounding interest. A bad one means re-running expensive evals every time you want to look at something.
+JD 要求"Context Engineering"。今天实现 context 窗口管理的三种策略和 prompt cache 统计。这是 agent harness 和玩具 loop 的分水岭——面试高频题。
 
-## Reading (1)
-- SWE-agent's trajectory format — https://github.com/princeton-nlp/SWE-agent/tree/main/trajectories
-  Look at one `*.traj.json` file. Note what they record vs what they don't.
+同时写博客 3《Agent Memory 系统设计：从滑动窗口到语义检索》。
 
 ## Build tasks
 
-### Part A — Trajectory schema (1 hour)
-`harness/trajectory/schema.py` — pydantic models:
+### Part A — Context Manager（3 小时）
+`agent/context/manager.py`：
 ```python
-class StepEvent(BaseModel):
-    step: int
-    timestamp: datetime
-    kind: Literal["llm_call", "tool_call", "stuck_signal", "context_trim"]
-
-class LLMCallEvent(StepEvent):
-    kind: Literal["llm_call"] = "llm_call"
-    provider: str
-    model: str
-    request_messages: list[Message]    # full input
-    response: CompletionResponse
-    latency_ms: int
-    cost_usd: float
-
-class ToolCallEvent(StepEvent):
-    kind: Literal["tool_call"] = "tool_call"
-    tool_name: str
-    args: dict
-    result: str
-    is_error: bool
-    duration_ms: int
-
-class Trajectory(BaseModel):
-    run_id: str          # uuid
-    task: str
-    started_at: datetime
-    finished_at: datetime | None
-    config: dict          # provider, model, tool list, limits
-    events: list[StepEvent]   # union via discriminator
-    final_answer: str | None
-    truncated: bool
-    truncation_reason: str | None
-    total_cost_usd: float
-    total_input_tokens: int
-    total_output_tokens: int
-```
-
-Persistence: write **JSON Lines** (one event per line) to `trajectories/<run_id>.jsonl`, with a header line containing the run-level metadata (no `events` field). Streaming-friendly, append-only.
-
-### Part B — Recorder integration (1 hour)
-Modify `agent/loop/loop.py` to take an optional `Recorder`:
-```python
-class Recorder:
-    def __init__(self, dir: Path = Path("trajectories")):
+class ContextManager:
+    def __init__(self, max_tokens: int, reserved: int = 4096):
         ...
-    def open(self, run_id: str, task: str, config: dict) -> RecorderHandle: ...
-
-class RecorderHandle:
-    def emit(self, event: StepEvent) -> None: ...
-    def close(self, final_answer, truncated, truncation_reason) -> None: ...
+    def fit(self, messages: list[Message]) -> list[Message]:
+        """裁剪/压缩后返回能放进窗口 messages"""
 ```
-Every LLM call, every tool call, every stuck signal → one event. Synchronously write before the next step (so a crash doesn't lose data).
 
-### Part C — Viewer (3 hours)
-`harness/trajectory/viewer.py` — Streamlit app:
-```bash
-streamlit run harness/trajectory/viewer.py -- --dir trajectories/
-```
-Features:
-- Sidebar: list of trajectories (run_id, task snippet, cost, status)
-- Main pane: timeline view, one collapsible card per event
-  - LLM calls: show messages, response, token counts, cost, latency
-  - Tool calls: show args (pretty JSON), result (with syntax highlighting if code), duration
-  - Stuck signals: red banner
-- Top of pane: summary stats (steps, cost, success/fail, total time)
-- Filter: hide certain event kinds
-- Compare mode: pick 2 trajectories side-by-side
+三种裁剪策略（config 切换）：
+1. **`drop_oldest`** — 丢弃最旧的非 system message，保持 tool 配对
+2. **`summarize_oldest`** — 超限时把最旧 N 轮发给模型摘要，替换为一条 assistant message
+3. **`hierarchical`** — 最近 K 轮原文保留，更早的做一次滚动摘要
 
-Don't over-design — Streamlit is for *you* to debug, not a product.
+### Part B — Prompt Cache（1 小时）
+利用 Anthropic prompt caching API：
+- 在每次请求中标记 cache breakpoint（通常在 system prompt 末尾）
+- 统计 cache hit rate：连续两次调用同一 session 时第二次是否命中
+- 记录到 trajectory 事件
 
-### Part D — Use it
-Re-run yesterday's smoke test with recorder enabled. Open the viewer. Make sure each event renders sensibly.
+### Part C — Token 预算监控
+`agent/context/token_tracker.py`：
+- 实时跟踪已用 tokens（input + output）
+- 显示 budget bar：`████████░░ 80% (48k/60k)`
+- 超限事件：记录何时触发裁剪、丢弃了多少 tokens
+
+### Part D — 博客 3
+`docs/blog/03-agent-memory-system.md`，~2000 字：
+1. 为什么 agent 需要 memory（不是 conversation history）
+2. 短期 vs 长期：滑动窗口 + 持久化
+3. 检索策略：关键词 vs 语义，trade-off
+4. 代码片段 + 实验数据
+5. Context Engineering 如何与 memory 协作
 
 ## Acceptance criteria
-- [ ] Schema covers everything the agent loop emits
-- [ ] One full trajectory written and replayable
-- [ ] Viewer shows it readably; you can navigate and find any specific tool call in < 5 seconds
-- [ ] File size: a 30-step trajectory is < 200KB
+- [ ] 3 种 context 裁剪策略实现 + 测试
+- [ ] prompt cache 统计可用
+- [ ] token 预算监控
+- [ ] 博客 3 发布
 
 ## Commit message
-`harness: trajectory schema (JSONL) + Streamlit viewer`
-
-## If you finish early
-Add a `harness.trajectory.export` CLI that converts trajectories to OpenAI fine-tuning format (messages with tool_calls). Future-proofs you for SFT.
+`agent: context manager (3 strategies) + prompt cache + blog 3`
 
 ## If you fall behind
-Skip the Streamlit viewer; cat the JSONL and read by hand. The schema and recorder are the must-haves.
+- 只做 `drop_oldest` + token 监控，博客只写 memory 部分

@@ -1,73 +1,52 @@
-# Day 16 — Context management, retries, stuck-detection
+# Day 16 — Memory 系统（structured working state 为主）
 
 ## Why this day matters
-The interview question is never "did you write a loop?" — it's "what happens at step 47 when the context window is 90% full and the model just emitted the same wrong action three times?" Today is the day you have answers.
+→ 服务于长任务：50-step 的任务中，agent 必须记住"我已经改了 3 个文件，还有 2 个没动，上次失败是因为 X"。
+DeepSeek 关心的不是"agent 以前聊过什么"，而是 **"agent 当前在做什么、下一步该干嘛"**。
 
 ## Reading (1)
-- Anthropic, *Long context tips* — https://docs.anthropic.com/en/docs/build-with-claude/long-context-tips
-  Skim. Then read the prompt-engineering section on "putting examples and document content earlier" — relevant to what you trim later.
+- Anthropic paper 中 memory 章节
 
 ## Build tasks
 
-### Part A — Context window manager (3 hours)
-`agent/loop/context.py`:
+### 1. Structured Working State（核心）
+`agent/memory/working_state.py`：
 ```python
-class ContextManager:
-    def __init__(self, max_tokens: int, reserved_for_completion: int = 4096):
-        ...
+class WorkingState(BaseModel):
+    current_goal: str
+    subtasks: list[Subtask]           # 分解后的子任务
+    attempted_actions: list[ActionRecord]   # 已尝试的操作
+    known_failures: list[FailureRecord]    # 已知失败及原因
+    modified_files: list[str]              # 已修改的文件
+    open_questions: list[str]              # 待确认的问题
 
-    def fit(self, messages: list[Message]) -> list[Message]:
-        """Return a (possibly trimmed/summarized) message list that fits."""
+class WorkingStateTracker:
+    def update_from_step(self, step: ToolUseBlock, result: str) -> None: ...
+    def inject_into_prompt(self) -> str: ...  # → system prompt 的 working state 段落
 ```
-Strategy (implement all three; pick by config):
-1. **`drop_oldest`** — remove oldest non-system messages until under limit. Keep tool_use/tool_result pairs together (never orphan a tool_result).
-2. **`summarize_oldest`** — when over limit, take the oldest N turns, ask the model "Summarize the following in 200 tokens preserving any decisions made and files touched", replace those turns with one assistant message.
-3. **`hierarchical`** — keep most-recent K turns verbatim; summarize anything older once, into a single rolling summary block.
+每个 step 自动更新 working state。→ 长任务中这是 agent 的"任务板"。
 
-Token counting: use the provider's `count_tokens` if available, else `tiktoken` for OpenAI-family and Anthropic's beta token-counting endpoint.
+### 2. 短期 Memory（滑动窗口）
+`agent/memory/short_term.py`：Last N messages / token budget，保持 tool 配对。
 
-### Part B — Retry layer (1 hour)
-`agent/loop/retry.py` — wrap every provider call:
-- HTTP 429 / 529 / 5xx → exponential backoff with jitter, max 5 attempts
-- Token budget exceeded → bubble up (don't retry)
-- Tool execution exception → format as `tool_result` with `is_error=True` and let the model recover; do **not** retry from the agent loop's side
-- Hard timeout per call (default 120s) using `asyncio.timeout`
+### 3. 长期 Memory（轻量，关键词检索）
+`agent/memory/long_term.py`：SQLite + FTS5，存跨 session 的关键决策。→ 长任务中断后恢复。
+**不做 embedding 检索**——embedding 检索是 RAG 的东西，和 coding agent 的 working memory 关系不大。
 
-### Part C — Stuck detection (1 hour)
-`agent/loop/stuck.py`:
-```python
-class StuckDetector:
-    def observe(self, tool_use: ToolUseBlock, result: str) -> StuckSignal | None:
-        """Return a StuckSignal if the agent appears stuck."""
-```
-Heuristics:
-- **Repeated identical tool_use** (same name + same input) ≥ 3 times → `RepeatedAction`
-- **Same tool, alternating between 2 inputs** ≥ 4 times (ABAB) → `Oscillation`
-- **N consecutive tool errors** (configurable, default 5) → `ErrorCascade`
-- **No file write in last K=10 steps** when task involves coding → `NoProgress`
-
-When a signal fires, the Agent appends a system-flavored user message:
-```
-"You appear to be stuck (signal: RepeatedAction). Reconsider your approach.
-Possible options: try a different tool, ask for clarification, or use the finish tool with what you have."
-```
-Single-shot — if it fires twice in a row, abort the run with `truncated=True, reason="stuck"`.
-
-### Part D — Tests
-`agent/tests/test_context.py` — feed 100 fake messages, assert each strategy produces a valid trimmed list (no orphan tool_results, under limit).
-`agent/tests/test_stuck.py` — synthetic sequences trigger each signal exactly once.
+### 4. 实验
+`experiments/day16_memory.py`：
+- 任务：让 agent 实现一个 3 文件的小项目（app.py, models.py, test_app.py）
+- 对比：same task, with/without working state → 对比 success rate / avg steps / recovery from failure
+- 跨 session：让 agent 中断 → 恢复 → 检查 working state 是否正确
 
 ## Acceptance criteria
-- [ ] All three context strategies pass their tests
-- [ ] Retry layer survives a flaky mock provider that fails 50% of calls
-- [ ] Stuck detector unit tests green
-- [ ] Run `experiments/day15_smoke.py` again — should still pass with all the new layers active
+- [ ] **Structured Working State**（核心）实现，能自动更新 + 注入 prompt
+- [ ] 短期 memory 滑动窗口（保持 tool 配对）
+- [ ] 长期 memory（SQLite + FTS5，不用 embedding）
+- [ ] 对比实验：working state 对成功率的影响
 
 ## Commit message
-`agent: context manager (3 strategies) + retry + stuck detection`
-
-## If you finish early
-Add a `replay` mode: given a saved trajectory JSONL, replay it without LLM calls (uses recorded responses) — invaluable for debugging.
+`agent: structured working state + short-term memory + lightweight long-term store`
 
 ## If you fall behind
-Implement only the `drop_oldest` context strategy and the `RepeatedAction` stuck signal. Skip retry layer (the SDKs have basic retries built-in).
+- 只做 working state + 短期 memory，长期 memory 用内存 list 代替

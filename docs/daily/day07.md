@@ -1,82 +1,43 @@
-# Day 07 — W1 retrospective + W2 sandbox interface design
+# Day 07 — 精读 aider + SWE-agent + 博客 1
 
 ## Why this day matters
-Sunday is for sharpening the axe. You will lose more time in W2 to a bad sandbox interface than to any C++ syscall — design first, code second.
-
-## Reading (1)
-- MCP specification — https://modelcontextprotocol.io/specification/2025-06-18/basic
-  Read only the **Lifecycle**, **Transports (stdio)**, and **Tools** sections. Total ~30 minutes. You will implement against this spec on Day 12.
+完成 W1 最后一块。aider 和 SWE-agent 是现代 coding agent 两大基石。读完它们 + 发布博客 1，W1 才算真正结束。
 
 ## Build tasks
 
-### Part A — W1 retrospective (1 hour)
-Write `docs/notes/week1-retro.md`:
-- 5 things that worked
-- 3 things that wasted time
-- What one habit would 2× next week's output?
-- Update `docs/plan/PLAN.md` if anything in W2–W4 needs adjusting; commit the diff with a clear `plan: ...` message and a body explaining why.
+### 1. 读 aider 源码
+重点：
+- **Repo Map**：如何在 token budget 内给模型展示代码库概览？
+- **Edit 格式**：search-replace 为什么比 diff 更可靠？
+- **Git 集成**：怎么用 git 做 safety？
 
-### Part B — Sandbox design doc (4 hours)
-`docs/design/sandbox.md`, ~1500 words. Required sections:
+### 2. 读 SWE-agent 源码
+重点：
+- **ACI（Agent-Computer Interface）**：action space 怎么设计？
+- **Observation 裁剪**：命令输出超长时怎么处理？
+- 读 [SWE-agent paper](https://arxiv.org/abs/2405.15793) method section
 
-1. **Threat model** — what does the sandbox protect against?
-   - Untrusted code from LLM execution (the main case)
-   - Not: side-channel attacks, kernel zero-days, persistent malware
-2. **Requirements**
-   - Cold start ≤ 500ms (so a 50-step agent doesn't take 30s in overhead)
-   - Memory limit, CPU limit, wall-clock limit
-   - Filesystem: writable scratch dir, read-only system
-   - Network: default deny, optional allowlist
-   - Determinism: same input → same output (best effort)
-3. **Survey of alternatives** (one paragraph each, with verdict)
-   - Docker exec
-   - Firecracker microVM
-   - gVisor
-   - nsjail / bubblewrap
-   - WASM (wasmtime)
-   - macOS sandbox-exec (for local dev)
-4. **Decision: v0 = nsjail-style direct namespaces; v1 = Firecracker (deferred)**
-   - Why: minimal deps, runs on Linux CI without Docker-in-Docker, teaches you the primitives directly
-5. **Interface contract** — the C ABI between the C++ runner and the Python SDK:
-   ```
-   Input (stdin JSON):
-     {
-       "cmd": ["python", "-c", "print(1)"],
-       "limits": {"memory_mb": 256, "cpu_seconds": 5, "wall_seconds": 10},
-       "rootfs": "/path/to/overlay",
-       "network": "deny"
-     }
-   Output (stdout JSON, single line):
-     {
-       "exit_code": 0,
-       "stdout": "...",
-       "stderr": "...",
-       "duration_ms": 123,
-       "killed_by": null  // or "memory" | "cpu" | "wall" | "signal"
-     }
-   ```
-6. **Test plan** — 4 escape attempts the sandbox must defeat:
-   - fork bomb
-   - 10GB allocation
-   - `curl https://example.com`
-   - `cat /etc/shadow`
+### 3. 架构图
+- `docs/design/aider-arch.png`
+- `docs/design/swe-agent-arch.png`
 
-### Part C — Tooling check
-- Confirm you have a Linux box for W2. mac M4 cannot run cgroups v2 / seccomp natively. Options (pick one and write into the design doc):
-  1. UTM/Lima Ubuntu 24.04 VM on the M4 (free, slower)
-  2. A cheap Linux server (Hetzner CAX21 ARM, ~€7/month)
-  3. AWS/Aliyun Ubuntu 24.04 instance, on-demand for W2 only
+### 4. 博客 1 — 《从系统工程师视角写一个 Agent Harness：30 天从零到 SWE-bench》
+- 你是谁（系统工程师背景）
+- 为什么做这个项目
+- 项目架构总览（sandbox / tools / agent loop / eval / memory / subagent）
+- 技术栈和为什么不用 LangChain
+- W1 学到的东西（ReAct / Prompt / Reasoning）
+- 接下来的计划
+
+中英双发：掘金 + dev.to
 
 ## Acceptance criteria
-- [ ] `week1-retro.md` committed
-- [ ] `docs/design/sandbox.md` ≥ 1200 words, covers all 6 sections
-- [ ] You have shell access to a Linux box, verified by running `cat /proc/self/cgroup` (must show cgroup v2 unified hierarchy: starts with `0::`)
+- [ ] aider + SWE-agent 源码笔记
+- [ ] 三张架构图（opencode + aider + SWE-agent）
+- [ ] 博客 1 发布
 
 ## Commit message
-`docs: week 1 retro + sandbox design v0`
-
-## If you finish early
-Bootstrap the C++ build: `sandbox/cpp/CMakeLists.txt` + an empty `main.cpp` that compiles. This buys you Day 9 morning.
+`day7: aider + SWE-agent notes, 3 arch diagrams, blog 1 published`
 
 ## If you fall behind
-Cut the survey of alternatives to bullet points. Threat model + interface contract are the parts that matter for W2.
+- 博客先发中文版，英文后续补

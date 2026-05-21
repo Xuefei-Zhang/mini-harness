@@ -1,56 +1,69 @@
-# Day 26 — Reproducibility, README rewrite, project polish
+# Day 26 — 终极挑战：长任务验证
 
 ## Why this day matters
-Tomorrow you publish blog 4. By the time anyone clones your repo, it must (a) build green from a fresh clone, (b) reproduce one SWE-bench task in one command, (c) tell its story in the first 30 seconds. Today is all about that.
+这是整个 30 天的最终验证。你之前写的每一个模块——working state、context manager、failure recovery、subagent、trajectory——不是为了 demo，是为了让 harness 能驱动模型完成一项**真正长任务**。
 
-## Reading (1)
-- Read 3 well-presented agent repos for design inspiration:
-  - https://github.com/princeton-nlp/SWE-agent (README structure)
-  - https://github.com/sst/opencode (badges and demo gif)
-  - https://github.com/Aider-AI/aider (prose tone)
-  Spend ~30 min total. Steal layout, not text.
+如果成功，这是简历上最重的一句话：
+> "我用自己的 harness 驱动模型为 [项目名] 提交了一个可 merge 的 PR。"
 
 ## Build tasks
 
-### Part A — Reproducibility (3 hours)
-- `make demo` — runs Day 18 Flask demo end-to-end (no SWE-bench needed). Should work on fresh clone in < 5 min.
-- `make swebench-one` — runs ONE SWE-bench task end-to-end. Should work on a Linux box with docker, in < 10 min, < $0.20 cost.
-- `make swebench-15` — runs the full 15-task matrix. Documented runtime + cost.
-- `Makefile` is committed; each target prints what it'll do + estimated cost + asks `Continue? [y/N]` before incurring API spend.
+### Part A — 选项目/任务（1 小时）
+三选一：
+1. **vLLM**：GitHub 找 `good first issue` 或 `bug`
+2. **FastAPI**：找一个 bug fix 或小型 feature
+3. **从零实现**：给定 spec，实现一个中等复杂度项目（如 HTTP 缓存中间件：LRU + TTL + benchmark）
 
-Add `docs/REPRODUCING.md`: step-by-step, including the Linux/Docker requirement, how to get a Hetzner box if you don't have one, expected cost.
+关键标准：任务需要 30-80 steps，跑 1-3 小时，涉及多文件修改。
 
-### Part B — README rewrite (2 hours)
-Open today's README. Rewrite as if you are a recruiter who has 30 seconds:
+### Part B — 让 harness 跑起来（全天下）
+```bash
+python experiments/day26_ultimate.py \
+    --provider claude \
+    --task "Fix vLLM issue #XXXX: [description]" \
+    --workspace /path/to/vllm \
+    --memory-working-state \
+    --context-strategy hierarchical \
+    --failure-recovery enabled \
+    --trajectory trajectories/ultimate.jsonl
+```
 
-Required structure (in this order):
-1. **One-line tagline** — "A from-scratch coding agent harness scoring X% on SWE-bench Lite, built solo in 30 days."
-2. **Headline number** — big, with how-to-reproduce link
-3. **GIF or screenshot** — agent fixing a real bug, embedded
-4. **Provider matrix table** — your Day 25 result
-5. **What's inside** — 4 components with one-line descriptions, links into the codebase
-6. **Quick start** — 5 commands max
-7. **Blog series** — all 4 published, with URLs
-8. **Author** — your name, GitHub, LinkedIn, "I'm looking for X roles"
+观察：
+- agent 能否在 50+ steps 后仍然"知道"自己在做什么？
+- context 膨胀到 80k tokens 后，裁剪策略是否保留了关键信息？
+- 失败后 working state 是否帮助 agent 避免重蹈覆辙？
+- subagent 是否在合适的时候被 spawn？
 
-The "Author" section is the call to action. It must say "I'm interviewing for Agent Infra / Harness / Coding Agent positions in 2026 H1. Reach me at <email>."
+### Part C — 如果 agent 卡住了
+这不是失败。这是最有价值的部分。
 
-### Part C — Topics + social proof (1 hour)
-- GitHub Topics on the repo: `llm-agent`, `swe-bench`, `mcp-server`, `sandbox`, `coding-agent`, `evaluation-harness`
-- Pin the repo on your GitHub profile
-- Set the repo's social-preview image (Settings → Social Preview) — a screenshot of the trajectory viewer with the headline number overlaid
+用 trajectory replay 分析卡在哪、为什么。修复 harness → 重新跑。这就是"与模型共同进化"。
+
+### Part D — 记录一切
+`docs/notes/day26_ultimate_challenge.md`：
+- 选了什么项目/issue
+- 跑了多少步、多少小时、多少 cost
+- 失败了几次、harness 如何恢复
+- 最终结果：PR 能否 merge？代码质量如何？
+- **harness 的哪些机制在长任务中真正起了作用？哪些没用？**
 
 ## Acceptance criteria
-- [ ] `make demo` works on the M4 (no Linux required for this one)
-- [ ] `make swebench-one` works on the Linux box
-- [ ] README rewritten following the recruiter-30s structure
-- [ ] Repo topics + pinned + social preview set
+- [ ] 长任务至少跑完一轮（不管成功还是失败）
+- [ ] trajectory 记录完整（30+ steps）
+- [ ] `day26_ultimate_challenge.md` 笔记完整
+- [ ] 如果失败了：分析原因 + harness 需要改进的点
 
 ## Commit message
-`docs: README rewrite, Makefile demo targets, REPRODUCING guide`
+`day26: long-horizon task — harness drives agent through [X]-step task`
 
 ## If you finish early
-Set up GitHub Actions to run `make demo` (with mocked LLM provider) on every PR — proves the repo doesn't bit-rot.
+- 让 DeepSeek 跑同一任务，对比结果
+- 如果产出 PR：完善 PR description，提交
 
 ## If you fall behind
-Skip Actions. README rewrite + Makefile are the must-haves.
+- 缩小任务范围：不是"实现整个 feature"，而是"修这一个 bug"
+- 但不要让步到"只跑 10 steps"——失去长任务的意义
+
+---
+
+> **这不是 Day 26。这是 30 天来的每一个决策为什么这样做的答案。**

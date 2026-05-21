@@ -1,53 +1,58 @@
-# Day 14 — Publish blog 2, polish, W2 retro
+# Day 14 — Agent Loop v0 + 4 Provider + 博客 2 发布
 
 ## Why this day matters
-End-of-week: harvest the work into something the world (and recruiters) can see. This blog has the strongest signal-to-recruiter ratio of all four because the topic intersection (LLM agents × Linux internals × C++) is rare.
+Day 1 的 ReAct 是玩具。今天建的是 W4 跑 SWE-bench 的 agent loop——async、typed、multi-provider、proper tool-call protocol。你的项目从今天开始看起来像真正的 agent runtime。
+
+同时发布博客 2，收尾 W2。
 
 ## Reading (1)
-- No new reading. Use the time for a careful re-read of your own draft from Day 13. Distance helps you see it as a stranger.
+- Anthropic [Tool use with Claude](https://docs.anthropic.com/en/docs/build-with-claude/tool-use) — 看 request/response shape
 
 ## Build tasks
 
-### Part A — Polish & publish blog 2 (4 hours)
-- Take draft to ~2000 words, tighten every paragraph
-- Have Claude proofread for English; you write the *first draft* in English (don't translate from Chinese — the structure changes)
-- **Inline at least 3 code excerpts** with syntax highlighting (cgroup write, clone3 flags, seccomp rule)
-- **Inline 1 architecture diagram + 1 cold-start latency chart** (matplotlib → png is fine)
-- Publish to dev.to (English) **and** 掘金 (Chinese version, you can translate this one)
-- Cross-post English to: r/cpp, r/LocalLLaMA, lobste.rs (link only), and Twitter/X if you have an account
+### Part A — Provider 抽象（2 小时）
+`agent/providers/base.py`：
+```python
+class LLMProvider(ABC):
+    @abstractmethod
+    async def complete(self, system: str, messages: list[Message],
+                       tools: list[ToolDefinition]) -> CompletionResponse: ...
+```
+实现：`AnthropicProvider`, `OpenAIProvider`, `DeepSeekProvider`, `QwenProvider`。
+内部格式用 Anthropic 的（比 OpenAI 的更通用），其他 provider 在边界处翻译。
 
-### Part B — README polish (1 hour)
-- Update roadmap progress bar to W2 done
-- Add a "Sandbox" section with the architecture image, cold-start number, and a 4-line code example
-- Update blog table with both URLs
+### Part B — Agent Loop（2 小时）
+`agent/loop/loop.py`：
+```python
+class Agent:
+    async def run(self, task: str) -> AgentResult:
+        while not done:
+            response = await provider.complete(system, messages, tools)
+            if response.tool_uses:
+                results = await execute_tools(response.tool_uses)
+                messages.extend(tool_results)
+            elif response.stop_reason == "end_turn":
+                return response
+            if step >= max_steps:
+                return truncated
+```
 
-### Part C — W2 retrospective (1 hour)
-`docs/notes/week2-retro.md`:
-- Total LOC produced (run `tokei sandbox/ tools/`)
-- API spend so far (check provider dashboards)
-- Where you went over time, where you went under
-- Three open bugs / known issues to revisit later
-- Update `docs/plan/PLAN.md` if W3 estimates need adjustment
+### Part C — 冒烟测试
+`agent/tests/test_smoke.py`：Anthropic provider 下让 agent 读 README.md 并回答。
 
-### Part D — Sanity check the W3 entry point
-Open `docs/daily/day15.md`. Make sure you have:
-- 4 working API keys
-- LLM API budget for ~100 calls/day
-- The sandbox SDK importable from anywhere in the project
-
-If anything's missing, fix it today, not Monday morning.
+### Part D — 博客 2 发布（2 小时）
+- 草稿 → 2000 字定稿，Claude 润色英文
+- 内联 ≥ 3 段代码 + 1 架构图 + 1 性能图
+- 发布 dev.to（英文）+ 掘金（中文）
 
 ## Acceptance criteria
-- [ ] Blog 2 published on dev.to AND 掘金
-- [ ] README reflects W2 completion and links blog 2
-- [ ] `week2-retro.md` committed
-- [ ] At least 1 cross-post done
+- [ ] 4 provider 实现 LLMProvider
+- [ ] agent loop 冒烟测试通过
+- [ ] tool-use 用 tool_use/tool_result blocks（不用 regex）
+- [ ] 博客 2 双发
 
 ## Commit message
-`day14: publish blog 2, README W2 polish, week2 retro`
-
-## If you finish early
-Add a `make demo` target that runs `experiments/day13_demo.py` so anyone cloning can see it work in one command.
+`day14: agent loop v0 + 4 providers + publish blog 2`
 
 ## If you fall behind
-Publish English-only, skip 掘金. Still polish README — recruiters will look there before any blog.
+- 先实现 Anthropic + DeepSeek，OpenAI + Qwen 顺延

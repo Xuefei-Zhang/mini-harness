@@ -1,61 +1,61 @@
-# Day 21 — W3 retro + W4 SWE-bench prep
+# Day 21 — KV Cache 原理 + 端到端 Demo + W3 复盘
 
 ## Why this day matters
-Sunday axe-sharpening before the hardest week. SWE-bench is operationally fiddly; an hour of prep today saves four hours of yak-shaving Monday.
+串联 W3 收尾。先补 KV Cache 原理（轻量），然后串起所有模块跑端到端 demo——验证 W3 建设的 harness 能否协同工作。
 
 ## Reading (1)
-- SWE-bench official README — https://github.com/SWE-bench/SWE-bench
-  Read **only**: the Quickstart, "Datasets on Hugging Face" section, and the Evaluation section. Stop before the "Train your own" section.
-
-  Then `git clone https://github.com/SWE-bench/SWE-bench ~/code/swe-bench` for tomorrow.
+- Karpathy LLM 课，KV Cache 部分（约 30 分钟）→ [YouTube](https://www.youtube.com/watch?v=kPRA0W1kEC8)
 
 ## Build tasks
 
-### Part A — W3 retro (1 hour)
-`docs/notes/week3-retro.md`:
-- Total LOC across `agent/`, `harness/` (run `tokei`)
-- Total API spend W3
-- Cost per task on Day 18 (final, after Day 19 optimizations) — this is the number you need for SWE-bench budget math
-- 3 things you'd do differently if starting W3 over
-- Update PLAN if W4 needs adjustment
+### Part A — KV Cache 原理（1-2 小时）
+`docs/notes/day21_kv_cache.md`：
+- KV Cache 是什么：存储每个 token 的 Key 和 Value，避免重复计算 prefix
+- 内存代价：sequence_length × num_layers × 2 × d_model × num_heads
+- 和 prompt caching 的区别：模型层 vs API 层
+- 作为 harness 开发者，如何优化 KV Cache 利用？（system prompt 每轮发送 → 适合 caching）
 
-### Part B — SWE-bench Lite scoping (2 hours)
-SWE-bench Lite has 300 tasks. You will run a **subset of 10–20** to keep cost and time bounded. Pick them today.
+可选：`experiments/day21_kv_cache.py` — 纯 PyTorch tiny transformer KV Cache demo（时间不够跳过）
 
-`harness/datasets/swebench_lite.py`:
-- Load the dataset from HuggingFace (`datasets.load_dataset("princeton-nlp/SWE-bench_Lite")`)
-- Filter helpers: `by_repo()`, `by_difficulty()`, `sample(n, seed)`
-- Pick 15 tasks weighted toward easier-looking ones (small `patch_size`, recent issues)
-- Save the chosen task IDs to `harness/datasets/lite_15.json` so runs are reproducible
-
-### Part C — Docker readiness (2 hours)
-SWE-bench's evaluator builds **per-task Docker images** containing the exact dependencies of each repo at that commit. They publish prebuilt images for the Lite split — verify on your Linux box:
+### Part B — 端到端 demo（4 小时）
+`experiments/day21_full_demo.py`：
 ```bash
-docker pull swebench/sweb.eval.x86_64.django_1776_django-13710:latest
-docker run --rm swebench/sweb.eval.x86_64.django_1776_django-13710:latest /bin/sh -c "cd /testbed && python -m pytest --collect-only" | head
+python experiments/day21_full_demo.py \
+    --task "Implement an HTTP todo service with tests" \
+    --provider claude \
+    --memory-working-state \
+    --context-strategy hierarchical
 ```
-For each of your 15 chosen tasks, confirm the prebuilt image pulls and runs `--collect-only` cleanly. If any fails, swap that task for another. Save the verified list back to `lite_15.json`.
+任务流：
+1. Agent 收到任务 → Skills 发现（file_editor + code_runner）
+2. Agent 写代码 → 遇到 bug → Working State 记录失败
+3. Agent spawn 子 agent 写测试 → 子 agent 完成后汇报
+4. Agent 运行测试 → 失败 → 从 working state 检索历史 → 修复
+5. 所有测试通过 → finish
 
-Disk: prebuilt images are ~2GB each → 30GB for 15 tasks. Make sure your Linux box has it.
+记录完整 trajectory。
 
-### Part D — Cost/time projection
-With your Day-19 numbers and 15 tasks, project:
-- Wall time per task × 15 = total run time
-- Cost per task × 15 × 4 providers = total cost for full matrix
+### Part C — W3 复盘
+`docs/notes/week3-retro.md`：
+- 总代码行数（`tokei agent/`）
+- 总 API 花费
+- W3 最大的 3 个收获
+- 哪些模块需要重构
+- W4 预算估算
 
-If the projection is > $500 or > 6 hours of wall time, reduce N or providers now. Document in `docs/notes/week4-budget.md`.
+### Part D — SWE-bench 准备
+- `git clone https://github.com/SWE-bench/SWE-bench ~/code/swe-bench`
+- 读 README Quickstart + Evaluation
+- 预览 2-3 个 tasks 的 problem_statement
 
 ## Acceptance criteria
-- [ ] `lite_15.json` committed with 15 verified task IDs
-- [ ] Each image pulls and `--collect-only` succeeds
-- [ ] Cost projection ≤ $300 (fits the original ¥3000 monthly budget)
-- [ ] Linux box has ≥ 50GB free disk
+- [ ] KV Cache 原理笔记
+- [ ] 端到端 demo 跑通（working state + context + skills + subagent 协作）
+- [ ] trajectory 记录完整
+- [ ] W3 复盘笔记
 
 ## Commit message
-`harness: SWE-bench Lite dataset loader + verified 15-task subset`
-
-## If you finish early
-Read 2–3 of your chosen tasks (`problem_statement` field) end-to-end. Get a feel for what the agent will actually face.
+`day21: KV Cache notes + end-to-end demo with full harness + W3 retro`
 
 ## If you fall behind
-Pick only 10 tasks and one provider (Claude Sonnet). Better to have real numbers Friday than projections.
+- 端到端 demo 只跑 Claude provider，KV Cache 只做笔记不做 demo

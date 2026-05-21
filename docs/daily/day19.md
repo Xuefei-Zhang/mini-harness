@@ -1,58 +1,50 @@
-# Day 19 — Hardening, system-prompt iteration, cost optimization
+# Day 19 — Multi-Agent（lightweight：planner/executor/reviewer）
 
 ## Why this day matters
-Day 18 produced a baseline. Today you make it good. The single highest-leverage thing you can change is the system prompt + tool descriptions — better than any code change. You'll also fix the rough edges that will hurt you on SWE-bench next week.
-
-## Reading (1)
-- Anthropic, *Claude code system prompt* (community-extracted) — search "claude-code system prompt site:github.com"; or read this widely-shared distillation: https://github.com/anthropics/claude-code (their docs, look for "system prompt" or "tool descriptions" sections)
-  Goal: see how a state-of-the-art coding agent describes its tools and constrains the model's behavior.
+JD 要求"Multi-Agent"。工业界实际大量用的是"planner → executor → reviewer"三角色流水线，不是"5 agent 辩论"。只做这个，不深挖。
 
 ## Build tasks
 
-### Part A — System prompt v2 (2 hours)
-Today's prompt is probably 10 lines. SOTA agents have ~1500-token system prompts. Write yours in `agent/prompts/system.md`. Include:
-- Identity and capability statement
-- The exact format expected for finishing a task
-- Anti-patterns: "Do not assume; verify by reading the file. Do not edit code you have not read. Do not invent test commands; discover them from the repo (Makefile, pyproject, package.json)."
-- Tool-use discipline: "Prefer narrow `read_file` ranges; do not load whole files into context if you can search."
-- Stopping condition: "When all tests pass, run them once more, report the result, and call finish."
+### 1. 三角色流水线
+`agent/multi_agent/triad.py`：
+```python
+class PlannerAgent:
+    """接收任务 → 分解子任务 → 输出 plan"""
 
-Iterate empirically: re-run Day 18 task with prompt v2; compare metrics.
+class ExecutorAgent:
+    """执行每个子任务 → 汇报结果"""
 
-### Part B — Tool description tuning (1 hour)
-Each tool's `description` field is what the model actually reads when deciding which tool to use. Today's are probably 1 line. Expand each to 3–5 sentences with:
-- When to use this tool
-- When NOT to use this tool (point at the better alternative)
-- A concrete example call
-- Common pitfall
+class ReviewerAgent:
+    """检查 executor 输出 → approve / request changes"""
 
-Example for `run_shell`:
-> Execute a shell command in the sandboxed workspace. Use this for: running tests, listing files, applying patches, installing dependencies. Do NOT use this for editing files (use `write_file`) or for inspecting file contents > 200 lines (use `read_file` with offset/limit). Network is denied. Working directory is the workspace root. Example: `{"cmd": "pytest -x tests/test_app.py"}`. Common pitfall: long-running processes will hit the 60s timeout — for servers, append `& sleep 1; ...` so the command returns.
+async def triad_pipeline(task: str, provider: LLMProvider) -> TriadResult:
+    plan = await planner.run(task)
+    for subtask in plan.subtasks:
+        result = await executor.run(subtask)
+        review = await reviewer.check(result)
+        if review == "changes_needed":
+            result = await executor.fix(subtask, review.comments)
+    return TriadResult(plan, results)
+```
 
-Re-run Day 18; compare.
+### 2. 实验
+`experiments/day19_triad.py`：
+- 任务："实现一个 HTTP todo API（CRUD + 测试）"
+- 对比：单 agent vs 三角色流水线的输出质量（代码行数、测试覆盖率、bug 数）
 
-### Part C — Cost optimization (2 hours)
-Inspect your Day 18 trajectories. Find the three biggest cost contributors. For each, fix:
-- **Repeated full-file reads** → switch to ranged reads + caching at the tool level
-- **System prompt sent every turn** → it already is by API design; just make sure it's not duplicated in `messages`
-- **Reading test output 5 times** → tool layer should remember the last 2 outputs and detect repeated reads
-
-Add `agent/tools/file_cache.py`: an LRU of file path → (mtime, content). On `read_file`, if mtime hasn't changed since last read, return cached. Saves both time and tokens.
-
-### Part D — Re-bench
-Re-run Day 18 matrix with v2 prompt + tuned descriptions + caching. Update the results table. **Target: 2× cost reduction or 1.5× pass-rate improvement, whichever comes first.**
+### 3. 分析
+`docs/notes/day19_multi_agent.md`：
+- 三角色流水线比单 agent 在哪些指标上好/差？
+- token 代价：三角色 = 3× context，是否值得？
+- 什么场景适合用 multi-agent，什么场景单 agent 就够了？
 
 ## Acceptance criteria
-- [ ] System prompt v2 in `agent/prompts/system.md`, ≥ 800 tokens
-- [ ] All 4 tool descriptions rewritten
-- [ ] File cache implemented and tested
-- [ ] New benchmark numbers show measurable improvement; both old and new tables in `docs/notes/day19-iteration.md`
+- [ ] planner/executor/reviewer 流水线实现
+- [ ] 实验对比数据
+- [ ] 分析笔记
 
 ## Commit message
-`agent: system prompt v2, expanded tool descriptions, file cache (X% cost cut)`
-
-## If you finish early
-Add a `--budget` flag to the agent: aborts when projected cost exceeds USD limit. Important for SWE-bench (200 tasks at $0.50 each is $100/run).
+`agent: lightweight multi-agent — planner/executor/reviewer triad pipeline`
 
 ## If you fall behind
-Skip cost optimization; just do prompt + tool descriptions. The biggest wins come from those two anyway.
+- 只做 planner + executor，reviewer 简化为"run tests"

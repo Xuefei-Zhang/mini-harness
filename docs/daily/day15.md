@@ -1,100 +1,52 @@
-# Day 15 — Agent loop v0 + multi-provider LLM client
+# Day 15 — Skills 框架
 
 ## Why this day matters
-Day 1's ReAct was a toy. Today you build the loop you'll *actually use* for SWE-bench in W4 — async, typed, multi-provider, with proper tool-call protocol (not regex on text). This is where your project starts looking like a real agent runtime.
-
-## Reading (1)
-- Anthropic, *Tool use with Claude* — https://docs.anthropic.com/en/docs/build-with-claude/tool-use
-  Read the full page once. Pay attention to the request/response shape — that becomes your canonical internal format.
+JD 要求"熟悉 Skills"。今天设计一个可插拔的技能机制——agent 能根据任务自动发现和加载合适的技能，而不是把所有能力硬编码。这是 Claude Code 等产品的核心机制之一。
 
 ## Build tasks
 
-### Part A — Provider abstraction (2 hours)
-`agent/providers/base.py`:
+### 1. Skill 抽象
+`agent/skills/base.py`：
 ```python
-class Message(BaseModel):
-    role: Literal["system", "user", "assistant", "tool"]
-    content: str | list[ContentBlock]
+class Skill(BaseModel):
+    name: str                    # "file_editor", "code_runner"
+    description: str             # 模型看到的技能描述
+    trigger_patterns: list[str]  # 自动匹配的关键词/正则
+    handler: Callable           # 执行逻辑
+    config: dict = {}           # 技能特定配置
 
-class ToolDefinition(BaseModel):
-    name: str
-    description: str
-    input_schema: dict  # JSON schema
-
-class ToolUseBlock(BaseModel):
-    id: str
-    name: str
-    input: dict
-
-class ToolResultBlock(BaseModel):
-    tool_use_id: str
-    content: str
-    is_error: bool = False
-
-class CompletionResponse(BaseModel):
-    text: str
-    tool_uses: list[ToolUseBlock]
-    stop_reason: Literal["end_turn", "tool_use", "max_tokens", "stop_sequence"]
-    usage: Usage   # input/output tokens, cost in USD
-
-class LLMProvider(ABC):
-    @abstractmethod
-    async def complete(self, system: str, messages: list[Message], tools: list[ToolDefinition]) -> CompletionResponse: ...
-```
-
-`agent/providers/anthropic.py` — wraps the Anthropic SDK, native tool-use.
-
-`agent/providers/openai.py` — wraps OpenAI SDK, translates their `function_call` shape to your internal types.
-
-`agent/providers/deepseek.py` — uses OpenAI-compatible API, model `deepseek-chat`.
-
-`agent/providers/qwen.py` — uses Dashscope OpenAI-compatible endpoint.
-
-The internal canonical format is **Anthropic-shaped** (it generalizes more cleanly than OpenAI's). Other providers translate at the boundary.
-
-### Part B — Agent loop (2 hours)
-`agent/loop/loop.py`:
-```python
-class Agent:
-    def __init__(self, provider: LLMProvider, tools: list[Tool], system: str,
-                 max_steps: int = 30):
+class SkillRegistry:
+    def register(self, skill: Skill) -> None: ...
+    def discover(self, task: str) -> list[Skill]:  # 根据任务描述匹配技能
         ...
-
-    async def run(self, task: str) -> AgentResult:
-        """Run until end_turn or max_steps. Returns final assistant text + trajectory."""
+    def load(self, skills: list[Skill]) -> list[Tool]:  # 技能 → Tool 列表
+        ...
 ```
 
-Loop body:
-1. `complete()` with current messages
-2. If response has `tool_uses`: execute each (sequentially; parallel comes Day 16), append `tool_result` blocks
-3. If `stop_reason == "end_turn"` or no tool_uses: return
-4. Increment step; if `step >= max_steps`: return with `truncated=True`
+### 2. 内置技能（3 个）
+- **`file_editor`**：read_file + write_file + search_replace 的组合技能，描述中包含"编辑代码、修改文件"
+- **`code_runner`**：在 sandbox 中运行代码，自动检测语言（python/node/rust），处理依赖安装
+- **`debug_assistant`**：读错误输出 → 定位源码 → 分析原因 → 建议修复
 
-Tools are async callables registered as:
-```python
-class Tool:
-    name: str
-    description: str
-    input_schema: dict
-    handler: Callable[[dict], Awaitable[str]]
-```
+### 3. 技能发现
+agent 收到任务后，先用 skill registry 的 `discover()` 匹配技能，再把匹配到的技能加载到 tool list。不需要的技能不占 context。
 
-Reuse Day 12 tools (read_file/write_file/run_shell/search_code) — for now wire them directly without going through MCP. (MCP integration on Day 17.)
-
-### Part C — Smoke test
-`agent/tests/test_smoke.py`: with the Anthropic provider, ask the agent to *"Use read_file to read README.md and tell me how many components there are"*. Assert it ends correctly.
+### 4. 测试
+`agent/tests/test_skills.py`：
+- "fix the bug in main.py" → 应发现 file_editor + debug_assistant
+- "run the tests" → 应发现 code_runner
+- "write a new feature" → 应发现 file_editor
 
 ## Acceptance criteria
-- [ ] All 4 providers implement `LLMProvider`
-- [ ] Agent loop runs the smoke task with Anthropic provider successfully
-- [ ] Tool-use happens via real tool_use/tool_result blocks (no regex parsing)
-- [ ] `pytest agent/tests/test_smoke.py` passes (mock the provider for non-API CI)
+- [ ] Skill 抽象 + SkillRegistry 实现
+- [ ] 3 个内置技能可注册
+- [ ] 技能发现测试通过（正确匹配 + 不误匹配）
 
 ## Commit message
-`agent: provider abstraction (4 backends) + tool-use agent loop v0`
+`agent: skills framework with registry, 3 built-in skills, auto-discovery`
 
 ## If you finish early
-Add cost tracking — every CompletionResponse has $ amount; Agent.run returns total cost.
+- 第 4 个技能：`git_manager`（git diff/log/status/commit）
 
 ## If you fall behind
-Implement only Anthropic + DeepSeek today. OpenAI + Qwen can slot in Day 16.
+- 2 个内置技能（file_editor + code_runner），debug_assistant 顺延

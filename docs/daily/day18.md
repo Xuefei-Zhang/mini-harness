@@ -1,64 +1,60 @@
-# Day 18 — End-to-end coding agent demo (mini Flask repo)
+# Day 18 — Agent Failure Analysis + Trajectory Replay + 博客 4
 
 ## Why this day matters
-Today the project crosses the threshold from "infrastructure" to "an agent that does real work". You assemble sandbox + tools + agent loop + trajectory recording into a single command that fixes a real bug. This is the screenshot you'll put in your résumé and at the top of blog 3.
-
-## Reading (1)
-- No new reading. Spend the budget on debugging.
+比 Subagent 更重要。真正做 harness 的团队最看重"理解 agent 为什么失败"。今天从实验数据中归纳失败分类、实现 trajectory replay。面试时这是"研究味道"的集中体现。
 
 ## Build tasks
 
-### Part A — Build the test repo (1 hour)
-`experiments/day18_targets/flask_buggy/`:
-- A 5-file Flask app: `app.py`, `models.py`, `auth.py`, `tests/test_app.py`, `requirements.txt`
-- Intentional bugs (commit each in its own commit, so you can diff later):
-  1. **Off-by-one** in pagination logic (`models.py`)
-  2. **Missing parameter validation** that crashes on empty input (`app.py`)
-  3. **Wrong status code** returned (200 instead of 401 on auth failure, `auth.py`)
-- A complete pytest suite in `tests/` that *currently fails* on these bugs
-
-### Part B — End-to-end runner (3 hours)
-`experiments/day18_run.py`:
-```bash
-python experiments/day18_run.py \
-    --provider claude \
-    --task "Fix all failing tests in experiments/day18_targets/flask_buggy" \
-    --workspace ./tmp/work-$(date +%s) \
-    --max-steps 30
+### 1. Trajectory Taxonomy（失败分类）
+从 Day 14-17 的实验中收集 50+ 次失败，归纳为 8 类：
 ```
-The script:
-1. Copies the buggy repo to a fresh workspace
-2. Configures the agent with tools pointed at that workspace, all `run_shell` going through the sandbox
-3. Runs the agent
-4. After completion: runs `pytest` in the workspace, captures pass count
-5. Prints summary: pass-rate, steps used, total cost, latency, trajectory path
+| 类型              | 描述                                    |
+|-------------------|----------------------------------------|
+| ToolFailure       | tool 参数错误/调用失败                     |
+| PlanningFailure   | 任务分解错误                              |
+| ContextFailure    | 关键信息丢失（context 被裁剪导致）            |
+| ExecutionFailure  | shell/runtime 出错                        |
+| ReasoningFailure  | 推理偏航（hallucinated file path 等）       |
+| RecoveryFailure   | retry 无效，陷入死循环                     |
+| StaleState        | working state 过时导致错误决策              |
+| PrematureFinish   | 过早完成任务                              |
+```
+→ `docs/notes/day18_failure_taxonomy.md`
 
-### Part C — Run the matrix
-Run with all 4 providers, save 4 trajectories. For each, record:
+### 2. Failure Rate 分析
+`harness/failure/analyzer.py`：
+```python
+class FailureAnalyzer:
+    def classify(self, trajectory: Trajectory) -> list[FailureEvent]: ...
+    def summary(self, trajectories: list[Trajectory]) -> FailureSummary: ...
+```
+- 自动扫描 trajectory JSONL → 标注每类失败的次数和比例
+- 分析：哪些 harness 机制能减少哪类失败（working state → PlanningFailure↓, context manager → ContextFailure↓）
 
-| Provider | Pass-rate | Steps | Total cost | Wall time | Notes |
-|---|---|---|---|---|---|
-| claude-sonnet-4-5 | ?/3 | ? | $? | ?s | |
-| gpt-4o | ?/3 | ? | $? | ?s | |
-| deepseek-chat | ?/3 | ? | $? | ?s | |
-| qwen-max | ?/3 | ? | $? | ?s | |
+### 3. Trajectory Replay
+`harness/failure/replay.py`：
+```python
+async def replay(trajectory_path: Path) -> None:
+    """重放 saved trajectory，不调用 LLM（用 recorded responses）"""
+    # 用途：debug harness、复现某次失败、对比不同 context 策略的效果
+    ...
+```
 
-Drop into `docs/notes/day18-results.md`. **This table goes in your README.**
-
-### Part D — Watch a failure
-Pick the worst-performing provider. Open its trajectory in the viewer. Identify the failure mode in plain English (got stuck searching? misread the test output? edited the wrong file?). Write a 100-word post-mortem in `docs/notes/day18-failure-analysis.md`.
+### 4. 博客 4 — 《Coding Agent Failure Taxonomy：从 N 次 trajectory 中归纳的 8 类失败模式》
+- 核心论点：coding agent 的失败可以分类、可以分析、可以通过 harness 机制缓解
+- 数据：你的 failure rate 表
+- 每种失败类型的代码片段（trajectory 中的真实例子）
+- 哪些 harness 机制对哪类失败有效
+- **research infra language**："我在分析 failure recovery policy 对 pass@k 的提升"
 
 ## Acceptance criteria
-- [ ] At least 1 provider achieves 3/3 fixes
-- [ ] All 4 providers produce a trajectory (even if 0/3)
-- [ ] Results table committed and added to README
-- [ ] Failure analysis written
+- [ ] 8 类失败分类 + 分析笔记
+- [ ] FailureAnalyzer 能自动扫描 trajectory
+- [ ] Trajectory Replay 可用
+- [ ] 博客 4 发布
 
 ## Commit message
-`day18: end-to-end coding agent demo on Flask test repo, 4-provider matrix`
-
-## If you finish early
-Add a 4th bug that requires *adding* a new file (not just editing). Tests which providers handle file creation cleanly.
+`harness: failure taxonomy (8 classes) + trajectory analyzer + replay + blog 4`
 
 ## If you fall behind
-Skip Qwen and OpenAI; run only Claude + DeepSeek. The 2-row table is still credible.
+- 5 类失败分类 + analyzer，replay 简化为"读取 JSONL 重放"

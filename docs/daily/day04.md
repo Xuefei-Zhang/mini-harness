@@ -1,48 +1,44 @@
-# Day 04 — Read opencode source code (part 2: agent loop) + start blog 1
+# Day 04 — Reasoning：CoT（重点）
 
 ## Why this day matters
-Yesterday you mapped the data. Today you map the *control flow* — how opencode actually decides what to do next. Then you start writing blog post #1, which is your single biggest recruiter-discovery asset.
+CoT（Chain of Thought）是工业界用得最多的推理增强。你不仅要实现它，还要用数据回答："CoT 在哪些场景下比 baseline 好？好多少？token 代价是多少？"——这就是 research infra language 的起点。
 
 ## Reading (1)
-- Continue with your local opencode clone. Today read only:
-  - `packages/opencode/src/agent/` (or `src/runtime/` — whichever holds the main loop)
-  - `packages/opencode/src/provider/` — at least the Anthropic and OpenAI providers
-  - The single entry point that wires it all together (`cli/run.ts` or similar)
+- [Chain of Thought](https://arxiv.org/abs/2201.11903) — abstract + intro + 结论
 
 ## Build tasks
 
-### Part A — Architecture diagram
-Create `docs/notes/opencode/architecture.excalidraw` (or `.png` exported from excalidraw). Required nodes:
-- User input → CLI → Session → Agent loop → LLM provider
-- Tool registry → Permission gate → Tool execution → Observation
-- Trajectory persistence
+创建 `experiments/day04_reasoning_modes.py`：
 
-Make it look like something you'd put on a slide. This will be reused in the blog and possibly in interviews.
+### 1. CoT（Chain of Thought）— 重点实现
+每次 Action 前强制 Thought 步骤：
+```
+Thought: [分析当前状态，思考下一步，≥ 2 句]
+Action: [执行]
+Observation: [结果]
+```
+对比 baseline ReAct（Thought 可选）vs CoT（Thought 强制 + 必须 ≥ 2 句）。
 
-### Part B — Start blog 1 draft
-Create `docs/blog/01-opencode-from-systems-perspective.md`. **Draft only**, do not publish today.
+### 2. 实验对比
+选 3-5 个需要推理的任务（非简单计算）：
+- "Find the bug in this Python sort function"
+- "What is the 10th Fibonacci number? Show your work."
+- 自己编一个 3+ 步推理任务
 
-Outline (write under each heading, 100–200 words):
-1. **Why a systems engineer should read agent code** — your background, the gap you're closing
-2. **Three abstractions that survived translation from OS kernels**
-   - Session ≈ process; Tool ≈ syscall; Permission ≈ capability
-   - Cite specific opencode source locations
-3. **One thing opencode does well that I didn't expect**
-4. **One thing I would design differently coming from a driver background**
-5. **What this means for the harness I'm building** (link forward to mini-harness)
+对每个任务跑 baseline / CoT，记录：成功、步数、tokens、latency、质量。
 
-Word target: 1500–2000 words finished. Today aim for ~800 words of rough draft.
+### 3. 分析 → `docs/notes/day04_cot.md`
+- CoT 在哪些任务上好/差？为什么？
+- token 代价：CoT 比 baseline 多消耗多少 token？
+- **research infra language**："我在分析 explicit reasoning 对 agent step efficiency 的影响"
 
 ## Acceptance criteria
-- [ ] One architecture diagram committed
-- [ ] Blog draft has all 5 sections with at least bullet points; ≥ 800 words total
-- [ ] Diagram is referenced from the blog draft
+- [ ] CoT 模式实现（Thought 强制执行，≥ 2 句）
+- [ ] 3-5 任务的 baseline vs CoT 对比数据
+- [ ] 分析笔记
 
 ## Commit message
-`docs: opencode architecture diagram + blog 1 draft`
+`day4: implement CoT reasoning mode, baseline comparison with 3+ tasks`
 
 ## If you finish early
-Begin reading aider's `coders/` package — comparison material for blog and for Day 5.
-
-## If you fall behind
-Skip the diagram, just describe the architecture in prose. Diagram can be redone in 30 min later.
+- 尝试 CoT + tool use 的组合：Thought 不仅推理，还说明"为什么选这个 tool"

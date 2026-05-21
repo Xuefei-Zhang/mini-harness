@@ -1,65 +1,48 @@
-# Day 12 — MCP tool server v0
+# Day 12 — Sandbox 集成测试 + 博客 2
 
 ## Why this day matters
-MCP (Model Context Protocol) is the emerging standard for tool servers — Anthropic, OpenAI, and the Coze/Dify ecosystems all support it. By implementing it from spec (not via SDK) you can speak fluently about it in interviews and your tools become drop-in usable in Claude Desktop, opencode, Continue, etc.
+Day 9-11 你写了 C++ sandbox。今天证明它能干活：写一个完整的 demo，并开写博客 2——这是四篇博客中工程师可信度最高的一篇，因为 LLM agents × Linux internals × C++ 的交集在国内很少有人做。
 
 ## Reading (1)
-- MCP "Tools" subsection of the spec — https://modelcontextprotocol.io/specification/2025-06-18/server/tools
-  Plus the **stdio transport** section (~5 minutes). That's all. The protocol is small.
+- E2B 源码（sandbox templates）— https://github.com/e2b-dev/E2B/tree/main/packages/python-sdk
+  只看 sandbox template 部分，30 分钟。用于博客中的对比段落。
 
 ## Build tasks
 
-### Part A — Minimal MCP server (4 hours)
-`tools/mcp_server/server.py` — a single file Python program speaking MCP over stdio.
+### Part A — 集成 demo（3 小时）
+`experiments/day12_sandbox_demo.py`：
+1. 在 sandbox 内写一个小型 Flask 应用
+2. 安装依赖（pip install）
+3. 启动服务，验证 health check
+4. 记录启动延迟、内存使用、吞吐量
 
-Required JSON-RPC methods:
-- `initialize` — return server name `mini-harness`, protocol version `2025-06-18`, capabilities `{tools: {}}`
-- `tools/list` — return the four tools below
-- `tools/call` — dispatch by name
+写入 `docs/notes/day12-sandbox-bench.md`。
 
-Tools (each returns MCP `content` array):
+### Part B — 博客 2 草稿（4 小时）
+`docs/blog/02-cpp-llm-sandbox.md`，目标 2000 字，今天先写 1200+：
 
-1. **`read_file`** — args: `{path: str, offset?: int, limit?: int}`; reads from a configurable workspace root (no escaping it)
-2. **`write_file`** — args: `{path: str, content: str}`; same workspace constraint
-3. **`run_shell`** — args: `{cmd: str, timeout_seconds?: int}`; **runs inside your `Sandbox` from Day 11**, returns stdout+stderr+exit_code
-4. **`search_code`** — args: `{pattern: str, path?: str}`; shells out to `rg --json --max-count=50` (also via Sandbox)
-
-Use **stdio transport**: read JSON-RPC messages line-delimited from stdin, write to stdout, log to stderr only. No third-party MCP library — implement the framing yourself. The whole thing should be ~300 lines.
-
-### Part B — Workspace safety
-- Take `--workspace /path` CLI arg
-- Reject any `read_file`/`write_file` whose resolved path is outside workspace (handle `..`, symlinks, absolute paths)
-- Add a unit test: `test_workspace_escape_rejected.py`
-
-### Part C — Connect to Claude Desktop
-Add `~/Library/Application Support/Claude/claude_desktop_config.json`:
-```json
-{
-  "mcpServers": {
-    "mini-harness": {
-      "command": "/Users/xuefeiz2/self/mini-harness/.venv/bin/python",
-      "args": ["-m", "tools.mcp_server.server", "--workspace", "/Users/xuefeiz2/code/scratch"],
-      "env": {}
-    }
-  }
-}
-```
-Restart Claude Desktop. Verify the four tools appear in the `🔌` menu. Have Claude do: *"Read README.md from my scratch repo, suggest one improvement, write a new file CHANGES.md with the suggestion."*
-
-### Part D — Connect to opencode
-opencode also supports MCP (see opencode docs). Add equivalent config under `~/.config/opencode/`. Verify `run_shell` works in a sandbox there too. (This is your dogfooding moment — you're using your own sandbox via your own MCP server through opencode.)
+1. **Hook**："每个 coding agent demo 都在跑不受信的代码。几乎没人解释怎么隔离的。这是我的 1500 行 C++ sandbox。"
+2. **Threat model** — 200 字
+3. **架构图** — 复用 sandbox.md
+4. **四大原语** — 每段 200 字 + 代码片段：
+   - cgroups v2（memory, CPU, pids）
+   - namespaces + clone3
+   - seccomp-bpf
+   - pivot_root + minimal rootfs
+5. **性能数据** — cold-start p50/p95
+6. **与 E2B/Modal/Docker exec 对比表**
+7. **代码开源** — 链接
 
 ## Acceptance criteria
-- [ ] `python -m tools.mcp_server.server --workspace /tmp` responds correctly to a hand-written `initialize` + `tools/list` JSON-RPC over stdio (script it as a smoke test in `tools/mcp_server/tests/`)
-- [ ] Claude Desktop sees all 4 tools and successfully runs an end-to-end task
-- [ ] `run_shell` is sandboxed (verify by attempting `cat /etc/shadow` → fails)
-- [ ] Workspace escape test passes
+- [ ] sandbox demo 跑通
+- [ ] 博客 2 草稿 ≥ 1200 字，8 个章节都有骨架
+- [ ] 对比表有你实测的数据
 
 ## Commit message
-`tools: MCP server v0 with read/write/shell/search tools, sandboxed`
+`day12: sandbox integration demo + blog 2 draft`
 
 ## If you finish early
-Add a `list_directory` tool. Add a `tools/get` method showing each tool's full schema (some clients need this).
+- 录制 30 秒 asciinema demo
 
 ## If you fall behind
-Drop `search_code` — `read_file` + `run_shell` cover the same surface area; agent can run `rg` itself via shell.
+- 博客砍掉第 6-7 节，demo + 草稿是必须的

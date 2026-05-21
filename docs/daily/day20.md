@@ -1,58 +1,54 @@
-# Day 20 — Blog 3 (write + publish)
+# Day 20 — Subagent 调度器
 
 ## Why this day matters
-You've shipped two infra-flavored blogs (opencode reading, sandbox internals). Blog 3 is the *application* blog — "I built a working coding agent and here's what surprised me". This is the one that lands well on Hacker News and Twitter, because it has numbers and a war-story tone.
-
-## Reading (1)
-- Re-read your Day 18 results table and Day 19 iteration notes. That's all the source material you need.
+JD 要求"Subagent"。→ 服务于长任务：长任务中主 agent 需要 spawn 子 agent 做并行工作（如同时分析 3 个文件、并行跑测试）。
 
 ## Build tasks
 
-### Part A — Outline (30 min)
-`docs/blog/03-coding-agent-loop.md`. Outline:
-1. **Hook**: a screenshot/asciinema of the agent fixing all 3 Flask bugs in 22 steps for $0.18
-2. **What's NOT in this post**: no LangChain, no AutoGen, no vector DB. ~200 LOC of Python is the agent. Here's why that's enough.
-3. **The provider abstraction** — show your `LLMProvider` interface, why Anthropic's tool-use shape is the canonical one, how OpenAI translates
-4. **The loop in 30 lines** — show `Agent.run()` literally
-5. **The non-obvious parts** that took most of the time:
-   - Context management: 3 strategies, when each fails
-   - Stuck detection: 4 heuristics, real examples from your trajectories
-   - File cache: why it's a 30% cost cut for almost no code
-6. **The 4-provider matrix** — your table, with commentary: which one wins on quality? on cost? on speed?
-7. **What I'd do differently for SWE-bench (next post)**
-8. **Code is open**
+### 1. Subagent 抽象
+`agent/subagent/runner.py`：
+```python
+class SubagentConfig(BaseModel):
+    task: str                      # 子任务描述
+    tools: list[str] | None = None # 可用工具（默认继承父 agent）
+    memory_isolated: bool = True   # 独立 working state
+    max_steps: int = 15
+    timeout_seconds: int = 120
 
-Target 2200 words.
+class SubagentResult(BaseModel):
+    answer: str
+    steps: int
+    cost_usd: float
+    trajectory: list[dict]
+    error: str | None
 
-### Part B — Write (3 hours)
-Draft in English directly. Use Claude to tighten phrasing once the structure is locked.
+class SubagentSpawner:
+    async def spawn(self, config: SubagentConfig) -> SubagentResult: ...
+    async def spawn_many(self, configs: list[SubagentConfig],
+                         mode: str = "parallel") -> list[SubagentResult]: ...
+```
 
-Mandatory inclusions:
-- ≥ 4 code blocks (interface, loop, one stuck heuristic, one tool description)
-- ≥ 1 screenshot (trajectory viewer)
-- The 4-provider results table
-- Total cost number for writing the entire blog (run a token-counter on your trajectories)
+### 2. 调度模式
+- **sequential**：按顺序执行，后一个可以看到前一个的结果
+- **parallel**：同时 spawn，用 `asyncio.gather` → 长任务中并行是关键
 
-### Part C — Publish (1 hour)
-- dev.to (English)
-- 掘金 (Chinese)
-- Twitter/X thread (5 tweets, the screenshot + 1 takeaway each)
-- Submit to Hacker News with title like "I wrote a coding agent in 200 lines (here's what's hard)" — submit Tuesday 8am PT for best traction; if today isn't Tuesday, schedule it
+### 3. 结果回收 + 错误传播
+- 子 agent 完成后，结果注入主 agent 的 working state
+- 子 agent 失败时：retry / skip / abort
+- 超时处理：`asyncio.timeout`
 
-### Part D — README update
-Blog 3 entry → published, URLs added.
+### 4. 实验
+`experiments/day20_subagent.py`：主 agent 收到任务"分析这个 repo 的代码质量和测试覆盖率"，spawn 两个子 agent（并行）：
+- 子 agent A：分析代码质量（read_file + search_code）
+- 子 agent B：检查测试覆盖率（run_shell: pytest --collect-only）
 
 ## Acceptance criteria
-- [ ] Blog 3 published in 2 places
-- [ ] Twitter thread posted (or scheduled)
-- [ ] HN submission live (or scheduled for Tuesday)
-- [ ] README reflects W3 essentially complete
+- [ ] SubagentSpawner 实现（spawn + spawn_many, sequential + parallel）
+- [ ] 错误传播（timeout / error / max_steps）
+- [ ] 实验跑通
 
 ## Commit message
-`day20: publish blog 3 — coding agent loop in 200 lines`
-
-## If you finish early
-Replay your best Day-18 trajectory into a YouTube short (asciinema → svg-term → mp4 via `gif-for-cli` or `ttygif`). Pin to repo.
+`agent: subagent orchestrator — sequential/parallel spawning with error recovery`
 
 ## If you fall behind
-Drop sections 5b (stuck detection) and 5c (file cache) — keep just context management. A shorter blog with a great hook still wins.
+- 只做 sequential，parallel 用 asyncio.gather 一行代码

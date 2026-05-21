@@ -1,55 +1,38 @@
-# Day 06 — Read SWE-agent source + finalize blog 1
+# Day 06 — 精读 opencode 源码
 
 ## Why this day matters
-SWE-agent (Princeton) is the academic reference for coding agents on SWE-bench. Reading their **Agent-Computer Interface (ACI)** paper and code teaches you what action-space design looks like at the research-publication level — directly relevant to W4 when you score on SWE-bench yourself.
-
-Also: today the blog ships. A draft that doesn't get published is wasted.
-
-## Reading (1)
-- SWE-agent — clone:
-  ```bash
-  git clone https://github.com/princeton-nlp/SWE-agent ~/code/swe-agent
-  ```
-  Read **only**:
-  - `sweagent/agent/agents.py` — the main agent class
-  - `sweagent/environment/swe_env.py` — the bash-based environment
-  - `config/default.yaml` — the action space and prompt templates
-
-  Skim their NeurIPS paper abstract + section 3 (ACI design) only if time permits — the code is the primary source.
+你用 opencode 日常编程。读它的源码是 W1 最高 ROI 活动：学习 (a) 生产级 agent 代码长什么样，(b) 面试官会问的抽象，(c) 博客中会用的词汇。今天只看 **tool dispatch** 和 **session state**。
 
 ## Build tasks
 
-### Part A — ACI notes (1 hour)
-`docs/notes/swe-agent/aci-design.md`, ~500 words:
-- What does "Agent-Computer Interface" mean concretely?
-- Compare SWE-agent's `edit` command vs aider's search-replace block vs raw shell `sed` — which fails how?
-- What's their `find_file` / `goto` / `scroll_down` design? Why not just give the model `cat` and `grep`?
-- One thing you'd steal for mini-harness; one thing you'd reject.
+### 1. 读 opencode 源码
+重点追踪：
+- **Tool 调用序列化**：模型返回的 tool_call 如何解析、验证、执行？
+- **Permission 系统**：哪些 tool 需要用户确认？permission 怎么设计？
+- **Session 管理**：session 的 state 怎么维护？messages 怎么存储？
+- **Context Window 处理**：context 快满了怎么裁剪？
 
-### Part B — Finalize and publish blog 1 (4–5 hours)
-- Take yesterday's draft to ~1800 words
-- Add the architecture diagram inline
-- Add a closing "what's next in this series" pointing at blog 2 (sandbox)
-- Have Claude proofread for tone (you write Chinese-flavored English; ask Claude to make it idiomatic without changing structure)
-- Create English version → publish to **dev.to** under your real name
-- Create Chinese version → publish to **掘金 (juejin.cn)**
-- Cross-post English link to: r/LocalLLaMA, r/MachineLearning (Saturday gets best traffic), Hacker News (only if you have a US-friendly title)
+### 2. 画架构图
+excalidraw → `docs/design/opencode-arch.png`：
+- 核心模块及其关系
+- tool dispatch 数据流
+- session state 存储方式
 
-### Part C — Wire blog into project
-Update `README.md` blog series table: blog 1 status `published`, add both URLs.
+### 3. 笔记 → `docs/notes/day06_opencode.md`
+- 3-5 个设计最巧妙的地方
+- 2-3 个可以改进的地方
+- 1 个可以直接用到 mini-harness 的想法
 
 ## Acceptance criteria
-- [ ] ACI notes committed
-- [ ] Blog 1 published on dev.to (URL recorded)
-- [ ] Blog 1 published on 掘金 (URL recorded)
-- [ ] README updated with both URLs
-- [ ] You posted the English version to ≥ 1 community
+- [ ] opencode 的 tool dispatch + session state 源码读通
+- [ ] `docs/design/opencode-arch.png` 架构图
+- [ ] `docs/notes/day06_opencode.md` 笔记
 
 ## Commit message
-`day6: SWE-agent ACI notes + publish blog 1`
+`day6: opencode source analysis, architecture diagram, notes`
 
 ## If you finish early
-Set up your personal blog on a custom domain (vercel + nextra, 30 min). Future blogs cross-post here too — owns your SEO long-term.
+- 开始看 claude-code 源码（逆向 npm 包），对比 opencode 差异
 
 ## If you fall behind
-Cut the Chinese version — publish English-only on dev.to. Translate later. **Do not skip publishing.**
+- 只看 tool dispatch，跳过 permission
