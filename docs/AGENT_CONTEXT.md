@@ -56,8 +56,13 @@ Every module serves one goal: **let the harness drive a model through a long-hor
 
 ### Environment
 - **Local LLM**: vLLM Qwen3.6-27B-FP8 on `localhost:9070` (systemd service `vllm-fp8`). Manage with `vllm_fp8 {start|stop|status|report}`
-- **Paper summaries**: `docs/notes/paper_summaries.md` — Chinese summaries of all referenced papers. Read this before diving into original papers.
-- **API keys**: `.env` (not tracked). Copy from `.env.example` for cloud provider experiments.
+- **Paper summaries**: `docs/notes/paper_summaries.md` — Chinese summaries of all referenced papers
+- **API keys**: `.env` (not tracked). Copy from `.env.example` for cloud provider experiments
+
+### Learning flow (pi-mono as reference codebase)
+- `~/3rd/pi-mono/` — live agent codebase to study before building each module
+- `docs/notes/pi-mono-learning-map.md` — maps each mini-harness Day → pi-mono files → interview questions → handwork
+- Daily flow: read pi-mono code → answer interview questions → discuss with agent → build mini-harness experiments → write notes
 
 ---
 

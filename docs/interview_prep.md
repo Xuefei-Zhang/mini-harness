@@ -170,13 +170,16 @@
 
 ## 十三、每日练习计划
 
-| 周 | 每天练什么 | 题号 |
-|---|---|---|
-| W1 (Day 1-7) | Agent Loop + Tool Use | Q1-4, Q6-8, Q59-62 |
-| W2 (Day 8-14) | Sandbox + MCP + Provider | Q28-34, Q10-12, Q13-14 |
-| W3 (Day 15-21) | Memory + Context + Failure | Q15-27, Q39-44 |
-| W4 (Day 22-28) | Eval + Model Behavior + System Design + 行为面 | Q35-38, Q45-49, Q50-54, Q55-58, Q71-76 |
-| Day 29 | 模拟面试（从每题型随机选 3-5 题） | 全覆盖 |
+| 周 | 每天练什么 | 题号 | pi-mono 代码文件 |
+|---|---|---|---|
+| W1 (Day 1-7) | Agent Loop + Tool Use | Q1-4, Q6-8, Q59-62 | `agent-loop.ts`, `agent.ts`, `tools/bash.ts` |
+| W2 (Day 8-14) | Sandbox + MCP + Provider | Q28-34, Q10-12, Q13-14 | `stream.ts`, `providers/`, `model-resolver.ts` |
+| W3 (Day 15-21) | Memory + Context + Failure | Q15-27, Q39-44 | `compaction/`, `session-manager.ts`, `regressions/` |
+| W4 (Day 22-28) | Eval + Model Behavior + System Design + 行为面 | Q35-38, Q45-49, Q50-54, Q55-58, Q71-76 | `harness.ts`, `faux.ts` |
+| Day 29 | 模拟面试（从每题型随机选 3-5 题） | 全覆盖 | 无 |
+
+**每日流程**：读 pi-mono 代码 → 回答对应面试问题 → 和 agent 讨论 → 做 mini-harness 实验 → 写总结
+完整映射：`docs/notes/pi-mono-learning-map.md`
 
 ---
 
