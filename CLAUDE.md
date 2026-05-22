@@ -58,3 +58,4 @@ Daily flow:
 - Don't silently add new dependencies
 - Don't create scratch files — everything git-tracked
 - Don't take destructive git actions without confirmation
+- **Don't write the experiment code for the user.** The daily experiments (e.g., Day 1 ReAct from scratch) are *hand-writing exercises* — the user learns by coding them themselves after reading the pi-mono source. Your job is to prepare the environment, explain what's needed, then wait for the user to write. If you start implementing the experiment, you're defeating the purpose. Instead, set up deps, describe the requirements, and say "you write it, ask me if stuck."
