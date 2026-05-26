@@ -449,8 +449,11 @@
 
 | Day | 主题 | 优先级 | 状态 |
 |---|---|---|---|
-| 1 | ReAct 回顾 | 🟡 P1 | ✅ 代码完成，待回顾 |
-| 2 | 现代 Python 速通 | 🟡 P1 | ⬜ |
+| 1 | ReAct 回顾 | 🟡 P1 | 🟡 代码完成，笔记部分，待回顾 |
+| 2 | 现代 Python 速通 | 🟡 P1 | ⬜ → 合并到 Day 1，边写边学 |
+| 3-5 | Prompt + Reasoning | 🟡 P1 | ⬜ 压缩为 2.5 天 |
+| 6-7 | 源码 + 博客 1 | 🟡 P1 | ⬜ 博客 1 延至 6/1 |
+| 8 | Sandbox 设计 | 🔴 P0 | ⬜ W2 推迟至 6/1 开始 |
 | 3 | Prompt Engineering | 🟡 P1 | ⬜ |
 | 4 | Reasoning: CoT | 🟡 P1 | ⬜ |
 | 5 | Reasoning: Reflexion + ToT | 🟡 P1 | ⬜ |
@@ -537,6 +540,7 @@
 
 | 版本 | 日期 | 变更 |
 |---|---|---|
+| v3.1 | 2026-05-25 | **W1 Review**: Day 1 部分完成，Day 2-7 未启动。W1 滞后 ~4 天。Day 2 合并到 Day 1；Day 4-5 压缩为 1.5 天；W2 推迟至 5/30。新增 `docs/notes/recommended_reading.md`（Anthropic blog + Claude Code 文档） |
 | v3.0 | 2026-05-21 | **研究味道强化**：Memory 重心→structured working state；新增 Failure Analysis（Day 18）+ trajectory replay；ToT/Multi-Agent 降级为 lightweight；新增 agent metrics + model co-evolution（Day 25-26）；trajectory 加强（OTel-style tracing, tool tree, retry chain）；博客语言→research infra language；新增优先级（P0/P1/P2）和"你能达到什么水平"章节 |
 | v2.0 | 2026-05-21 | 对齐 DeepSeek JD，新增 9 个模块 |
 | v1.0 | 2026-05-01 | 初始计划 |
